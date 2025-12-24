@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>שיבוץ פגישות - יום הורים</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .form-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .input-group input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .schedule-container {
+            padding: 30px;
+        }
+        
+        .time-slot {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .time-slot:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .time-slot.available {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        .time-slot.available:hover {
+            background: #c3e6cb;
+        }
+        
+        .time-slot.booked {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            cursor: not-allowed;
+        }
+        
+        .time-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .time-label {
+            font-weight: bold;
+            color: #495057;
+            min-width: 120px;
+        }
+        
+        .duration-badge {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .parent-name {
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .book-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .book-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+        
+        .book-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .cancel-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .summary {
+            background: #e7f3ff;
+            padding: 20px;
+            margin: 20px 30px;
+            border-radius: 10px;
+            border-right: 5px solid #667eea;
+        }
+        
+        .summary h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .alert {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #856404;
+        }
+        
+        .export-section {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .export-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .export-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 שיבוץ פגישות - יום הורים</h1>
+            <p>17:00 - 20:00 | 22 פגישות זמינות</p>
+        </div>
+        
+        <div class="form-section">
+            <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; border-right: 5px solid #667eea; line-height: 1.8;">
+                <h2 style="color: #667eea; margin-bottom: 15px; font-size: 1.5em;">הורים יקרים</h2>
+                <p style="margin-bottom: 10px; font-size: 1.1em;"><strong>שלום וברכה</strong></p>
+                <p style="margin-bottom: 10px;">ב״ה ביום שני הקרוב בתאריך <strong>29.12.25</strong> בין השעות <strong>17:00-20:00</strong></p>
+                <p style="margin-bottom: 10px;">יתקיים ערב הורים בביה"ס. בו תיפגשו לשיחות אישיות עם הצוות החינוכי של בית הספר.</p>
+                <p style="margin-bottom: 10px;">בבקשה הירשמו בקובץ המצורף.</p>
+                <p style="color: #667eea; font-weight: bold; margin-top: 15px;">השתתפותכם חובה נעימה.</p>
+            </div>
+            <div class="alert">
+                <strong>שימו לב:</strong> כל משבצת זמן ניתנת לשיבוץ פעם אחת בלבד
+            </div>
+            <div class="input-group">
+                <input type="text" id="firstName" placeholder="שם פרטי של התלמידה" />
+                <input type="text" id="lastName" placeholder="שם משפחה של התלמידה" />
+            </div>
+        </div>
+        
+        <div class="summary">
+            <h3>סיכום שיבוצים</h3>
+            <p>פגישות משובצות: <strong><span id="bookedCount">0</span>/22</strong></p>
+            <p>פגישות פנויות: <strong><span id="availableCount">22</span></strong></p>
+        </div>
+        
+        <div class="schedule-container" id="scheduleContainer"></div>
+        
+        <div class="export-section">
+            <button class="export-btn" onclick="exportToText()">💾 ייצא לקובץ טקסט</button>
+            <button class="export-btn" onclick="printSchedule()">🖨️ הדפס</button>
+        </div>
+    </div>
+
+    <script>
+        const slots = [];
+        let bookings = {};
+
+        // יצירת משבצות זמן - מערבב 10 דקות ו-5 דקות
+        function generateTimeSlots() {
+            const startHour = 17;
+            let currentTime = startHour * 60; // דקות מתחילת היום
+            const lastSlotTime = 19 * 60 + 40; // 19:40
+            
+            let fiveMinuteCounter = 0;
+            let slotIndex = 0;
+            
+            while (currentTime <= lastSlotTime && slotIndex < 22) {
+                const hours = Math.floor(currentTime / 60);
+                const minutes = currentTime % 60;
+                const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                
+                // כל 3 פגישות של 10 דקות, מוסיפים פגישה של 5 דקות
+                // זה נותן לנו פיזור שווה
+                if (fiveMinuteCounter === 3 && slotIndex < 21) {
+                    slots.push({
+                        time: timeStr,
+                        duration: 5,
+                        id: `slot-${slots.length}`
+                    });
+                    currentTime += 5;
+                    fiveMinuteCounter = 0;
+                } else {
+                    slots.push({
+                        time: timeStr,
+                        duration: 10,
+                        id: `slot-${slots.length}`
+                    });
+                    currentTime += 10;
+                    fiveMinuteCounter++;
+                }
+                
+                slotIndex++;
+            }
+        }
+
+        // טעינת נתונים מ-localStorage
+        function loadBookings() {
+            const saved = localStorage.getItem('parentMeetings');
+            if (saved) {
+                bookings = JSON.parse(saved);
+            }
+        }
+
+        // שמירת נתונים ל-localStorage
+        function saveBookings() {
+            localStorage.setItem('parentMeetings', JSON.stringify(bookings));
+        }
+
+        // הצגת משבצות הזמן
+        function renderSchedule() {
+            const container = document.getElementById('scheduleContainer');
+            container.innerHTML = '';
+            
+            slots.forEach(slot => {
+                const div = document.createElement('div');
+                const isBooked = bookings[slot.id];
+                
+                div.className = `time-slot ${isBooked ? 'booked' : 'available'}`;
+                
+                div.innerHTML = `
+                    <div class="time-info">
+                        <span class="time-label">${slot.time}</span>
+                        <span class="duration-badge">${slot.duration} דקות</span>
+                        ${isBooked ? `<span class="parent-name">${isBooked.firstName} ${isBooked.lastName}</span>` : '<span style="color: #28a745;">✓ זמין</span>'}
+                    </div>
+                    ${isBooked ? 
+                        `<button class="cancel-btn" onclick="cancelBooking('${slot.id}')">ביטול</button>` :
+                        `<button class="book-btn" onclick="bookSlot('${slot.id}')">שיבוץ</button>`
+                    }
+                `;
+                
+                container.appendChild(div);
+            });
+            
+            updateSummary();
+        }
+
+        // שיבוץ פגישה
+        function bookSlot(slotId) {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            
+            if (!firstName || !lastName) {
+                alert('נא למלא שם פרטי ושם משפחה של התלמידה');
+                return;
+            }
+            
+            if (bookings[slotId]) {
+                alert('משבצת זמן זו כבר תפוסה');
+                return;
+            }
+            
+            bookings[slotId] = {
+                firstName,
+                lastName,
+                timestamp: new Date().toISOString()
+            };
+            
+            saveBookings();
+            renderSchedule();
+            
+            // ניקוי השדות
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+        }
+
+        // ביטול שיבוץ
+        function cancelBooking(slotId) {
+            if (confirm('האם אתה בטוח שברצונך לבטל את השיבוץ?')) {
+                delete bookings[slotId];
+                saveBookings();
+                renderSchedule();
+            }
+        }
+
+        // עדכון סיכום
+        function updateSummary() {
+            const bookedCount = Object.keys(bookings).length;
+            document.getElementById('bookedCount').textContent = bookedCount;
+            document.getElementById('availableCount').textContent = 22 - bookedCount;
+        }
+
+        // ייצוא לטקסט
+        function exportToText() {
+            let text = 'שיבוץ פגישות - יום הורים\n';
+            text += '=' .repeat(50) + '\n\n';
+            
+            slots.forEach(slot => {
+                const booking = bookings[slot.id];
+                text += `${slot.time} (${slot.duration} דקות) - `;
+                if (booking) {
+                    text += `${booking.firstName} ${booking.lastName}`;
+                } else {
+                    text += 'פנוי';
+                }
+                text += '\n';
+            });
+            
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'shibutz_horim.txt';
+            a.click();
+        }
+
+        // הדפסה
+        function printSchedule() {
+            window.print();
+        }
+
+        // אתחול
+        generateTimeSlots();
+        loadBookings();
+        renderSchedule();
+    </script>
+</body>
+</html>
