@@ -50,6 +50,30 @@
             border-bottom: 2px solid #e9ecef;
         }
         
+        .welcome-message {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-right: 5px solid #667eea;
+            line-height: 1.8;
+        }
+        
+        .welcome-message h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .welcome-message p {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .welcome-message strong {
+            color: #667eea;
+        }
+        
         .input-group {
             display: flex;
             gap: 15px;
@@ -223,6 +247,22 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 30px;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -233,16 +273,16 @@
         </div>
         
         <div class="form-section">
-            <div style="background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; border-right: 5px solid #667eea; line-height: 1.8;">
-                <h2 style="color: #667eea; margin-bottom: 15px; font-size: 1.5em;">הורים יקרים</h2>
-                <p style="margin-bottom: 10px; font-size: 1.1em;"><strong>שלום וברכה</strong></p>
-                <p style="margin-bottom: 10px;">ב״ה ביום שני הקרוב בתאריך <strong>29.12.25</strong> בין השעות <strong>17:00-20:00</strong></p>
-                <p style="margin-bottom: 10px;">יתקיים ערב הורים בביה"ס. בו תיפגשו לשיחות אישיות עם הצוות החינוכי של בית הספר.</p>
-                <p style="margin-bottom: 10px;">בבקשה הירשמו בקובץ המצורף.</p>
+            <div class="welcome-message">
+                <h2>הורים יקרים</h2>
+                <p><strong>שלום וברכה</strong></p>
+                <p>ב״ה ביום שני הקרוב בתאריך <strong>29.12.25</strong> בין השעות <strong>17:00-20:00</strong></p>
+                <p>יתקיים ערב הורים בביה"ס. בו תיפגשו לשיחות אישיות עם הצוות החינוכי של בית הספר.</p>
+                <p>בבקשה הירשמו בקובץ המצורף.</p>
                 <p style="color: #667eea; font-weight: bold; margin-top: 15px;">השתתפותכם חובה נעימה.</p>
             </div>
             <div class="alert">
-                <strong>שימו לב:</strong> כל משבצת זמן ניתנת לשיבוץ פעם אחת בלבד
+                <strong>שימו לב:</strong> כל משבצת זמן ניתנת לשיבוץ פעם אחת בלבד. כל השיבוצים מסונכרנים בין כל המשתמשים.
             </div>
             <div class="input-group">
                 <input type="text" id="firstName" placeholder="שם פרטי של התלמידה" />
@@ -256,6 +296,9 @@
             <p>פגישות פנויות: <strong><span id="availableCount">22</span></strong></p>
         </div>
         
+        <div id="loadingMessage" class="loading" style="display: none;">טוען נתונים...</div>
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        
         <div class="schedule-container" id="scheduleContainer"></div>
         
         <div class="export-section">
@@ -267,12 +310,13 @@
     <script>
         const slots = [];
         let bookings = {};
+        const STORAGE_KEY = 'parent-meetings';
 
         // יצירת משבצות זמן - מערבב 10 דקות ו-5 דקות
         function generateTimeSlots() {
             const startHour = 17;
-            let currentTime = startHour * 60; // דקות מתחילת היום
-            const lastSlotTime = 19 * 60 + 40; // 19:40
+            let currentTime = startHour * 60;
+            const lastSlotTime = 19 * 60 + 40;
             
             let fiveMinuteCounter = 0;
             let slotIndex = 0;
@@ -282,8 +326,6 @@
                 const minutes = currentTime % 60;
                 const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 
-                // כל 3 פגישות של 10 דקות, מוסיפים פגישה של 5 דקות
-                // זה נותן לנו פיזור שווה
                 if (fiveMinuteCounter === 3 && slotIndex < 21) {
                     slots.push({
                         time: timeStr,
@@ -306,17 +348,48 @@
             }
         }
 
-        // טעינת נתונים מ-localStorage
-        function loadBookings() {
-            const saved = localStorage.getItem('parentMeetings');
-            if (saved) {
-                bookings = JSON.parse(saved);
+        // טעינת נתונים מהשרת
+        async function loadBookings() {
+            try {
+                document.getElementById('loadingMessage').style.display = 'block';
+                document.getElementById('errorMessage').style.display = 'none';
+                
+                const result = await window.storage.get(STORAGE_KEY, true);
+                
+                if (result && result.value) {
+                    bookings = JSON.parse(result.value);
+                } else {
+                    bookings = {};
+                }
+                
+                document.getElementById('loadingMessage').style.display = 'none';
+            } catch (error) {
+                console.log('טוען נתונים חדשים...');
+                bookings = {};
+                document.getElementById('loadingMessage').style.display = 'none';
             }
         }
 
-        // שמירת נתונים ל-localStorage
-        function saveBookings() {
-            localStorage.setItem('parentMeetings', JSON.stringify(bookings));
+        // שמירת נתונים לשרת
+        async function saveBookings() {
+            try {
+                await window.storage.set(STORAGE_KEY, JSON.stringify(bookings), true);
+                return true;
+            } catch (error) {
+                console.error('שגיאה בשמירה:', error);
+                showError('שגיאה בשמירת הנתונים. אנא נסו שנית.');
+                return false;
+            }
+        }
+
+        // הצגת הודעת שגיאה
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
         }
 
         // הצגת משבצות הזמן
@@ -349,7 +422,7 @@
         }
 
         // שיבוץ פגישה
-        function bookSlot(slotId) {
+        async function bookSlot(slotId) {
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             
@@ -358,8 +431,12 @@
                 return;
             }
             
+            // טעינה מחדש לוודא שהנתונים עדכניים
+            await loadBookings();
+            
             if (bookings[slotId]) {
-                alert('משבצת זמן זו כבר תפוסה');
+                alert('משבצת זמן זו כבר תפוסה. הדף יתרענן עכשיו.');
+                renderSchedule();
                 return;
             }
             
@@ -369,20 +446,26 @@
                 timestamp: new Date().toISOString()
             };
             
-            saveBookings();
-            renderSchedule();
-            
-            // ניקוי השדות
-            document.getElementById('firstName').value = '';
-            document.getElementById('lastName').value = '';
+            const success = await saveBookings();
+            if (success) {
+                renderSchedule();
+                document.getElementById('firstName').value = '';
+                document.getElementById('lastName').value = '';
+                alert('השיבוץ נשמר בהצלחה! ✅');
+            } else {
+                delete bookings[slotId];
+            }
         }
 
         // ביטול שיבוץ
-        function cancelBooking(slotId) {
+        async function cancelBooking(slotId) {
             if (confirm('האם אתה בטוח שברצונך לבטל את השיבוץ?')) {
                 delete bookings[slotId];
-                saveBookings();
-                renderSchedule();
+                const success = await saveBookings();
+                if (success) {
+                    renderSchedule();
+                    alert('השיבוץ בוטל בהצלחה!');
+                }
             }
         }
 
@@ -396,7 +479,7 @@
         // ייצוא לטקסט
         function exportToText() {
             let text = 'שיבוץ פגישות - יום הורים\n';
-            text += '=' .repeat(50) + '\n\n';
+            text += '='.repeat(50) + '\n\n';
             
             slots.forEach(slot => {
                 const booking = bookings[slot.id];
@@ -422,10 +505,20 @@
             window.print();
         }
 
+        // רענון אוטומטי כל 10 שניות
+        setInterval(async () => {
+            await loadBookings();
+            renderSchedule();
+        }, 10000);
+
         // אתחול
-        generateTimeSlots();
-        loadBookings();
-        renderSchedule();
+        async function init() {
+            generateTimeSlots();
+            await loadBookings();
+            renderSchedule();
+        }
+
+        init();
     </script>
 </body>
 </html>
