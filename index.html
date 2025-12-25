@@ -307,12 +307,27 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, get, remove, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDAnOU0WEvKuIIEn2fHAKNWn1aCh33bETM",
+            authDomain: "shibutz-horim.firebaseapp.com",
+            databaseURL: "https://shibutz-horim-default-rtdb.firebaseio.com",
+            projectId: "shibutz-horim",
+            storageBucket: "shibutz-horim.firebasestorage.app",
+            messagingSenderId: "744003942834",
+            appId: "1:744003942834:web:bfeb883ceaa15a30b18cab"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const bookingsRef = ref(database, 'bookings');
+
         const slots = [];
         let bookings = {};
-        const STORAGE_KEY = 'parent-meetings';
 
-        // יצירת משבצות זמן - מערבב 10 דקות ו-5 דקות
         function generateTimeSlots() {
             const startHour = 17;
             let currentTime = startHour * 60;
@@ -348,51 +363,6 @@
             }
         }
 
-        // טעינת נתונים מהשרת
-        async function loadBookings() {
-            try {
-                document.getElementById('loadingMessage').style.display = 'block';
-                document.getElementById('errorMessage').style.display = 'none';
-                
-                const result = await window.storage.get(STORAGE_KEY, true);
-                
-                if (result && result.value) {
-                    bookings = JSON.parse(result.value);
-                } else {
-                    bookings = {};
-                }
-                
-                document.getElementById('loadingMessage').style.display = 'none';
-            } catch (error) {
-                console.log('טוען נתונים חדשים...');
-                bookings = {};
-                document.getElementById('loadingMessage').style.display = 'none';
-            }
-        }
-
-        // שמירת נתונים לשרת
-        async function saveBookings() {
-            try {
-                await window.storage.set(STORAGE_KEY, JSON.stringify(bookings), true);
-                return true;
-            } catch (error) {
-                console.error('שגיאה בשמירה:', error);
-                showError('שגיאה בשמירת הנתונים. אנא נסו שנית.');
-                return false;
-            }
-        }
-
-        // הצגת הודעת שגיאה
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
-        }
-
-        // הצגת משבצות הזמן
         function renderSchedule() {
             const container = document.getElementById('scheduleContainer');
             container.innerHTML = '';
@@ -410,8 +380,8 @@
                         ${isBooked ? `<span class="parent-name">${isBooked.firstName} ${isBooked.lastName}</span>` : '<span style="color: #28a745;">✓ זמין</span>'}
                     </div>
                     ${isBooked ? 
-                        `<button class="cancel-btn" onclick="cancelBooking('${slot.id}')">ביטול</button>` :
-                        `<button class="book-btn" onclick="bookSlot('${slot.id}')">שיבוץ</button>`
+                        `<button class="cancel-btn" onclick="window.cancelBooking('${slot.id}')">ביטול</button>` :
+                        `<button class="book-btn" onclick="window.bookSlot('${slot.id}')">שיבוץ</button>`
                     }
                 `;
                 
@@ -421,8 +391,7 @@
             updateSummary();
         }
 
-        // שיבוץ פגישה
-        async function bookSlot(slotId) {
+        window.bookSlot = async function(slotId) {
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             
@@ -431,53 +400,50 @@
                 return;
             }
             
-            // טעינה מחדש לוודא שהנתונים עדכניים
-            await loadBookings();
-            
-            if (bookings[slotId]) {
-                alert('משבצת זמן זו כבר תפוסה. הדף יתרענן עכשיו.');
-                renderSchedule();
-                return;
-            }
-            
-            bookings[slotId] = {
-                firstName,
-                lastName,
-                timestamp: new Date().toISOString()
-            };
-            
-            const success = await saveBookings();
-            if (success) {
-                renderSchedule();
+            try {
+                const slotRef = ref(database, `bookings/${slotId}`);
+                const snapshot = await get(slotRef);
+                
+                if (snapshot.exists()) {
+                    alert('משבצת זמן זו כבר תפוסה. הדף יתרענן.');
+                    return;
+                }
+                
+                await set(slotRef, {
+                    firstName,
+                    lastName,
+                    timestamp: new Date().toISOString()
+                });
+                
                 document.getElementById('firstName').value = '';
                 document.getElementById('lastName').value = '';
                 alert('השיבוץ נשמר בהצלחה! ✅');
-            } else {
-                delete bookings[slotId];
+            } catch (error) {
+                console.error('שגיאה:', error);
+                alert('שגיאה בשמירת השיבוץ. אנא נסו שנית.');
             }
-        }
+        };
 
-        // ביטול שיבוץ
-        async function cancelBooking(slotId) {
+        window.cancelBooking = async function(slotId) {
             if (confirm('האם אתה בטוח שברצונך לבטל את השיבוץ?')) {
-                delete bookings[slotId];
-                const success = await saveBookings();
-                if (success) {
-                    renderSchedule();
+                try {
+                    const slotRef = ref(database, `bookings/${slotId}`);
+                    await remove(slotRef);
                     alert('השיבוץ בוטל בהצלחה!');
+                } catch (error) {
+                    console.error('שגיאה:', error);
+                    alert('שגיאה בביטול השיבוץ. אנא נסו שנית.');
                 }
             }
-        }
+        };
 
-        // עדכון סיכום
         function updateSummary() {
             const bookedCount = Object.keys(bookings).length;
             document.getElementById('bookedCount').textContent = bookedCount;
             document.getElementById('availableCount').textContent = 22 - bookedCount;
         }
 
-        // ייצוא לטקסט
-        function exportToText() {
+        window.exportToText = function() {
             let text = 'שיבוץ פגישות - יום הורים\n';
             text += '='.repeat(50) + '\n\n';
             
@@ -498,28 +464,30 @@
             a.href = url;
             a.download = 'shibutz_horim.txt';
             a.click();
-        }
+        };
 
-        // הדפסה
-        function printSchedule() {
+        window.printSchedule = function() {
             window.print();
-        }
+        };
 
-        // רענון אוטומטי כל 10 שניות
-        setInterval(async () => {
-            await loadBookings();
+        onValue(bookingsRef, (snapshot) => {
+            bookings = snapshot.val() || {};
             renderSchedule();
-        }, 10000);
+        });
 
-        // אתחול
-        async function init() {
-            generateTimeSlots();
-            await loadBookings();
+        generateTimeSlots();
+        document.getElementById('loadingMessage').style.display = 'block';
+        
+        get(bookingsRef).then((snapshot) => {
+            bookings = snapshot.val() || {};
             renderSchedule();
-        }
-
-        init();
+            document.getElementById('loadingMessage').style.display = 'none';
+        }).catch((error) => {
+            console.error('שגיאה:', error);
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('errorMessage').textContent = 'שגיאה בטעינת הנתונים';
+            document.getElementById('errorMessage').style.display = 'block';
+        });
     </script>
 </body>
 </html>
-
